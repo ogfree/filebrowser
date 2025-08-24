@@ -870,20 +870,20 @@ const windowsResize = throttle(() => {
   fillWindow();
 }, 100);
 
-const download = () => {
+const download = async () => {
   if (fileStore.req === null) return;
 
   if (
     fileStore.selectedCount === 1 &&
     !fileStore.req.items[fileStore.selected[0]].isDir
   ) {
-    api.download(null, fileStore.req.items[fileStore.selected[0]].url);
+    await api.download(null, fileStore.req.items[fileStore.selected[0]].url);
     return;
   }
 
   layoutStore.showHover({
     prompt: "download",
-    confirm: (format: any) => {
+    confirm: async (format: any) => {
       layoutStore.closeHovers();
 
       const files = [];
@@ -896,7 +896,7 @@ const download = () => {
         files.push(route.path);
       }
 
-      api.download(format, ...files);
+      await api.download(format, ...files);
     },
   });
 };
