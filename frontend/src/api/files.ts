@@ -88,7 +88,7 @@ export async function download(format: string | null, ...files: string[]) {
     filename += `.${format}`;
   }
 
-  const response = await fetch(url);
+  const response = await window.fetch(url);
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
@@ -119,7 +119,7 @@ export async function download(format: string | null, ...files: string[]) {
             controller.enqueue(value);
             push();
           })
-          .catch((err) => {
+          .catch((err: any) => {
             console.error(err);
             controller.error(err);
             downloadStore.remove(downloadId);

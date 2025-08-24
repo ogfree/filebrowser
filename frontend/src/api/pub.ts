@@ -67,7 +67,7 @@ export async function download(
     url += `token=${token}&`;
   }
 
-  const response = await fetch(url);
+  const response = await window.fetch(url);
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
@@ -98,7 +98,7 @@ export async function download(
             controller.enqueue(value);
             push();
           })
-          .catch((err) => {
+          .catch((err: any) => {
             console.error(err);
             controller.error(err);
             downloadStore.remove(downloadId);
