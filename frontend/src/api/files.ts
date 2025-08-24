@@ -183,6 +183,11 @@ export function copy(items: any[], overwrite = false, rename = false) {
   return moveCopy(items, true, overwrite, rename);
 }
 
+export async function downloadFromURL(url: string, path: string) {
+  const content = JSON.stringify({ url });
+  return resourceAction(`${path}?action=download-from-url`, "POST", content);
+}
+
 export async function checksum(url: string, algo: ChecksumAlg) {
   const data = await resourceAction(`${url}?checksum=${algo}`, "GET");
   return (await data.json()).checksums[algo];

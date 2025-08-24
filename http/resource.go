@@ -2,11 +2,13 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -100,6 +102,10 @@ func resourceDeleteHandler(fileCache FileCache) handleFunc {
 
 func resourcePostHandler(fileCache FileCache) handleFunc {
 	return withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+		if r.URL.Query().Get("action") == "download-from-url" {
+			return resourceDownloadFromURL(w, r, d)
+		}
+
 		if !d.user.Perm.Create || !d.Check(r.URL.Path) {
 			return http.StatusForbidden, nil
 		}
@@ -151,6 +157,68 @@ func resourcePostHandler(fileCache FileCache) handleFunc {
 
 		return errToStatus(err), err
 	})
+}
+
+type downloadRequest struct {
+	URL string `json:"url"`
+}
+
+func resourceDownloadFromURL(w http.ResponseWriter, r *http.Request, d *data) (int, error) {
+	if !d.user.Perm.Create || !d.Check(r.URL.Path) {
+		return http.StatusForbidden, nil
+	}
+
+	var req downloadRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	if req.URL == "" {
+		return http.StatusBadRequest, errors.New("url is empty")
+	}
+
+	resp, err := http.Get(req.URL)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return http.StatusInternalServerError, fmt.Errorf("download failed: status code %d", resp.StatusCode)
+	}
+
+	fileName := ""
+	disposition := resp.Header.Get("Content-Disposition")
+	if disposition != "" {
+		_, params, err := mime.ParseMediaType(disposition)
+		if err == nil && params["filename"] != "" {
+			fileName = params["filename"]
+		}
+	}
+
+	if fileName == "" {
+		fileName = path.Base(req.URL)
+	}
+
+	filePath := path.Join(r.URL.Path, fileName)
+
+	if _, err := d.user.Fs.Stat(filePath); err == nil {
+		if r.URL.Query().Get("override") != "true" {
+			return http.StatusConflict, nil
+		}
+	}
+
+	err = d.RunHook(func() error {
+		_, writeErr := writeFile(d.user.Fs, filePath, resp.Body, d.settings.FileMode, d.settings.DirMode)
+		return writeErr
+	}, "upload", filePath, "", d.user)
+
+	if err != nil {
+		_ = d.user.Fs.RemoveAll(filePath)
+	}
+
+	return errToStatus(err), err
 }
 
 var resourcePutHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data) (int, error) {

@@ -72,6 +72,13 @@
           :label="t('buttons.upload')"
           @action="uploadFunc"
         />
+        <action
+          v-if="headerButtons.upload"
+          icon="cloud_download"
+          id="download-url-button"
+          :label="t('prompts.downloadFromURL')"
+          @action="showDownloadURLPrompt"
+        />
         <action icon="info" :label="t('buttons.info')" show="info" />
         <action
           icon="check_circle"
@@ -926,6 +933,20 @@ const uploadFunc = () => {
   } else {
     document.getElementById("upload-input")?.click();
   }
+};
+
+const showDownloadURLPrompt = () => {
+  layoutStore.showHover({
+    prompt: "downloadURL",
+    confirm: (url: string) => {
+      api
+        .downloadFromURL(url, route.path)
+        .then(() => {
+          fileStore.reload = true;
+        })
+        .catch($showError);
+    },
+  });
 };
 
 const setItemWeight = () => {
