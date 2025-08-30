@@ -288,7 +288,7 @@ import { useFileStore } from "@/stores/file";
 import { useLayoutStore } from "@/stores/layout";
 
 import { users, files as api } from "@/api";
-import { enableExec } from "@/utils/constants";
+import { enableShell } from "@/utils/constants";
 import * as upload from "@/utils/upload";
 import css from "@/utils/css";
 import { throttle } from "lodash-es";
@@ -413,7 +413,7 @@ const headerButtons = computed(() => {
   return {
     upload: authStore.user?.perm.create,
     download: authStore.user?.perm.download,
-    shell: authStore.user?.perm.execute && enableExec,
+    shell: authStore.user?.perm.execute && enableShell,
     delete: fileStore.selectedCount > 0 && authStore.user?.perm.delete,
     rename: fileStore.selectedCount === 1 && authStore.user?.perm.rename,
     share: fileStore.selectedCount === 1 && authStore.user?.perm.share,

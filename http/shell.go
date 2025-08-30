@@ -1,11 +1,11 @@
 package http
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"time"
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
@@ -47,16 +47,11 @@ var shellHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 	// Handle pty resizes
 	go func() {
 		for {
-			if _, _, err := conn.NextReader(); err != nil {
-				conn.Close()
-				break
-			}
-
 			// Read resize message
 			_, resizeMessage, err := conn.ReadMessage()
 			if err != nil {
 				log.Printf("could not read resize message: %v", err)
-				continue
+				break
 			}
 
 			// Parse resize message
@@ -64,7 +59,7 @@ var shellHandler = withUser(func(w http.ResponseWriter, r *http.Request, d *data
 				Cols uint16 `json:"cols"`
 				Rows uint16 `json:"rows"`
 			}
-			if err := conn.ReadJSON(&resize); err != nil {
+			if err := json.Unmarshal(resizeMessage, &resize); err != nil {
 				log.Printf("could not parse resize message: %v", err)
 				continue
 			}
