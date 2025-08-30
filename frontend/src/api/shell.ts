@@ -4,17 +4,19 @@ import { removePrefix } from "./utils";
 const ssl = window.location.protocol === "https:";
 const protocol = ssl ? "wss:" : "ws:";
 
-export default function command(
+export default function shell(
   url: string,
-  command: string,
-  onmessage: WebSocket["onmessage"],
-  onclose: WebSocket["onclose"]
-) {
+  onmessage: WebSocket["onmessage"]
+): [WebSocket, Function] {
   url = removePrefix(url);
-  url = `${protocol}//${window.location.host}${baseURL}/api/command${url}`;
+  url = `${protocol}//${window.location.host}${baseURL}/api/shell${url}`;
 
   const conn = new window.WebSocket(url);
-  conn.onopen = () => conn.send(command);
   conn.onmessage = onmessage;
-  conn.onclose = onclose;
+
+  const resize = (cols, rows) => {
+    conn.send(JSON.stringify({ cols, rows }));
+  };
+
+  return [conn, resize];
 }

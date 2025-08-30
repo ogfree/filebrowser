@@ -54,6 +54,7 @@ type Server struct {
 	EnableThumbnails      bool   `json:"enableThumbnails"`
 	ResizePreview         bool   `json:"resizePreview"`
 	EnableExec            bool   `json:"enableExec"`
+	EnableShell           bool   `json:"enableShell"`
 	TypeDetectionByHeader bool   `json:"typeDetectionByHeader"`
 	AuthHook              string `json:"authHook"`
 	TokenExpirationTime   string `json:"tokenExpirationTime"`

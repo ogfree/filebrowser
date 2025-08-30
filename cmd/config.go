@@ -28,6 +28,7 @@ var configCmd = &cobra.Command{
 }
 
 func addConfigFlags(flags *pflag.FlagSet) {
+	flags.Bool("enable-shell", false, "enable shell command")
 	addServerFlags(flags)
 	addUserFlags(flags)
 	flags.BoolP("signup", "s", false, "allow users to signup")
@@ -213,6 +214,7 @@ func printSettings(ser *settings.Server, set *settings.Settings, auther auth.Aut
 	fmt.Fprintf(w, "\tTLS Cert:\t%s\n", ser.TLSCert)
 	fmt.Fprintf(w, "\tTLS Key:\t%s\n", ser.TLSKey)
 	fmt.Fprintf(w, "\tExec Enabled:\t%t\n", ser.EnableExec)
+	fmt.Fprintf(w, "\tShell Enabled:\t%t\n", ser.EnableShell)
 	fmt.Fprintln(w, "\nDefaults:")
 	fmt.Fprintf(w, "\tScope:\t%s\n", set.Defaults.Scope)
 	fmt.Fprintf(w, "\tLocale:\t%s\n", set.Defaults.Locale)

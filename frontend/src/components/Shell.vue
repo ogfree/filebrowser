@@ -10,32 +10,7 @@
       class="shell__divider"
       :style="this.shellDrag ? { background: `${checkTheme()}` } : ''"
     ></div>
-    <div @click="focus" class="shell__content" ref="scrollable">
-      <div v-for="(c, index) in content" :key="index" class="shell__result">
-        <div class="shell__prompt">
-          <i class="material-icons">chevron_right</i>
-        </div>
-        <pre class="shell__text">{{ c.text }}</pre>
-      </div>
-
-      <div
-        class="shell__result"
-        :class="{ 'shell__result--hidden': !canInput }"
-      >
-        <div class="shell__prompt">
-          <i class="material-icons">chevron_right</i>
-        </div>
-        <pre
-          tabindex="0"
-          ref="input"
-          class="shell__text"
-          :contenteditable="true"
-          @keydown.prevent.arrow-up="historyUp"
-          @keydown.prevent.arrow-down="historyDown"
-          @keypress.prevent.enter="submit"
-        />
-      </div>
-    </div>
+    <div ref="terminal"></div>
     <div
       @pointerup="stopDrag()"
       class="shell__overlay"
@@ -49,9 +24,12 @@ import { mapState, mapActions } from "pinia";
 import { useFileStore } from "@/stores/file";
 import { useLayoutStore } from "@/stores/layout";
 
-import { commands } from "@/api";
+import shell from "@/api/shell";
 import { throttle } from "lodash-es";
 import { theme } from "@/utils/constants";
+
+import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
 
 export default {
   name: "shell",
@@ -62,24 +40,36 @@ export default {
       if (this.isFiles) {
         return this.$route.path;
       }
-
       return "";
     },
   },
   data: () => ({
-    content: [],
-    history: [],
-    historyPos: 0,
-    canInput: true,
-    shellDrag: false,
     shellHeight: 25,
+    shellDrag: false,
     fontsize: parseFloat(getComputedStyle(document.documentElement).fontSize),
+    term: null,
+    fitAddon: null,
+    conn: null,
+    resize: null,
   }),
   mounted() {
-    window.addEventListener("resize", this.resize);
+    this.term = new Terminal();
+    this.fitAddon = new FitAddon();
+    this.term.loadAddon(this.fitAddon);
+    this.term.open(this.$refs.terminal);
+    this.fitAddon.fit();
+    this.term.onData((data) => {
+      this.conn.send(data);
+    });
+    [this.conn, this.resize] = shell(this.path, (ev) => {
+      this.term.write(ev.data);
+    });
+    window.addEventListener("resize", this.resizeTerm);
+    this.resizeTerm();
   },
   beforeUnmount() {
-    window.removeEventListener("resize", this.resize);
+    window.removeEventListener("resize", this.resizeTerm);
+    this.conn.close();
   },
   methods: {
     ...mapActions(useLayoutStore, ["toggleShell"]),
@@ -103,92 +93,27 @@ export default {
       const bottom =
         2.25 +
         document.querySelector(".shell__divider").offsetHeight / this.fontsize;
-
       if (userPos <= top && userPos >= bottom) {
         this.shellHeight = userPos.toFixed(2);
       }
     }, 32),
-    resize: throttle(function () {
+    resizeTerm: throttle(function () {
       const top = window.innerHeight / this.fontsize - 4;
       const bottom =
         2.25 +
         document.querySelector(".shell__divider").offsetHeight / this.fontsize;
-
       if (this.shellHeight > top) {
         this.shellHeight = top;
       } else if (this.shellHeight < bottom) {
         this.shellHeight = bottom;
       }
+      this.fitAddon.fit();
+      this.resize(this.term.cols, this.term.rows);
     }, 32),
-    scroll: function () {
-      this.$refs.scrollable.scrollTop = this.$refs.scrollable.scrollHeight;
-    },
-    focus: function () {
-      this.$refs.input.focus();
-    },
-    historyUp() {
-      if (this.historyPos > 0) {
-        this.$refs.input.innerText = this.history[--this.historyPos];
-        this.focus();
-      }
-    },
-    historyDown() {
-      if (this.historyPos >= 0 && this.historyPos < this.history.length - 1) {
-        this.$refs.input.innerText = this.history[++this.historyPos];
-        this.focus();
-      } else {
-        this.historyPos = this.history.length;
-        this.$refs.input.innerText = "";
-      }
-    },
-    submit: function (event) {
-      const cmd = event.target.innerText.trim();
-
-      if (cmd === "") {
-        return;
-      }
-
-      if (cmd === "clear") {
-        this.content = [];
-        event.target.innerHTML = "";
-        return;
-      }
-
-      if (cmd === "exit") {
-        event.target.innerHTML = "";
-        this.toggleShell();
-        return;
-      }
-
-      this.canInput = false;
-      event.target.innerHTML = "";
-
-      const results = {
-        text: `${cmd}\n\n`,
-      };
-
-      this.history.push(cmd);
-      this.historyPos = this.history.length;
-      this.content.push(results);
-
-      commands(
-        this.path,
-        cmd,
-        (event) => {
-          results.text += `${event.data}\n`;
-          this.scroll();
-        },
-        () => {
-          results.text = results.text
-
-            .replace(/\u001b\[[0-9;]+m/g, "") // Filter ANSI color for now
-            .trimEnd();
-          this.canInput = true;
-          this.$refs.input.focus();
-          this.scroll();
-        }
-      );
-    },
   },
 };
 </script>
+
+<style>
+@import "xterm/css/xterm.css";
+</style>
