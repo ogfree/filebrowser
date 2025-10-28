@@ -72,6 +72,13 @@
           :label="t('buttons.upload')"
           @action="uploadFunc"
         />
+        <action
+          v-if="headerButtons.upload"
+          icon="cloud_download"
+          id="download-url-button"
+          :label="t('prompts.downloadFromURL')"
+          @action="showDownloadURLPrompt"
+        />
         <action icon="info" :label="t('buttons.info')" show="info" />
         <action
           icon="check_circle"
@@ -863,20 +870,20 @@ const windowsResize = throttle(() => {
   fillWindow();
 }, 100);
 
-const download = () => {
+const download = async () => {
   if (fileStore.req === null) return;
 
   if (
     fileStore.selectedCount === 1 &&
     !fileStore.req.items[fileStore.selected[0]].isDir
   ) {
-    api.download(null, fileStore.req.items[fileStore.selected[0]].url);
+    await api.download(null, fileStore.req.items[fileStore.selected[0]].url);
     return;
   }
 
   layoutStore.showHover({
     prompt: "download",
-    confirm: (format: any) => {
+    confirm: async (format: any) => {
       layoutStore.closeHovers();
 
       const files = [];
@@ -889,7 +896,7 @@ const download = () => {
         files.push(route.path);
       }
 
-      api.download(format, ...files);
+      await api.download(format, ...files);
     },
   });
 };
@@ -926,6 +933,20 @@ const uploadFunc = () => {
   } else {
     document.getElementById("upload-input")?.click();
   }
+};
+
+const showDownloadURLPrompt = () => {
+  layoutStore.showHover({
+    prompt: "downloadURL",
+    confirm: (url: string) => {
+      api
+        .downloadFromURL(url, route.path)
+        .then(() => {
+          fileStore.reload = true;
+        })
+        .catch($showError);
+    },
+  });
 };
 
 const setItemWeight = () => {

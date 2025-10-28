@@ -24,6 +24,7 @@ import ReplaceRename from "./ReplaceRename.vue";
 import Share from "./Share.vue";
 import ShareDelete from "./ShareDelete.vue";
 import Upload from "./Upload.vue";
+import DownloadURL from "./DownloadURL.vue";
 import DiscardEditorChanges from "./DiscardEditorChanges.vue";
 
 const layoutStore = useLayoutStore();
@@ -31,6 +32,7 @@ const layoutStore = useLayoutStore();
 const { currentPromptName } = storeToRefs(layoutStore);
 
 const components = new Map<string, any>([
+  ["downloadURL", DownloadURL],
   ["info", Info],
   ["help", Help],
   ["delete", Delete],

@@ -445,11 +445,11 @@ const isSingleFile = () =>
   fileStore.selectedCount === 1 &&
   !req.value?.items[fileStore.selected[0]].isDir;
 
-const download = () => {
+const download = async () => {
   if (!req.value) return false;
 
   if (isSingleFile()) {
-    api.download(
+    await api.download(
       null,
       hash.value,
       token.value,
@@ -460,7 +460,7 @@ const download = () => {
 
   layoutStore.showHover({
     prompt: "download",
-    confirm: (format: DownloadFormat) => {
+    confirm: async (format: DownloadFormat) => {
       if (req.value === null) return false;
       layoutStore.closeHovers();
 
@@ -470,7 +470,7 @@ const download = () => {
         files.push(req.value.items[i].path);
       }
 
-      api.download(format, hash.value, token.value, ...files);
+      await api.download(format, hash.value, token.value, ...files);
       return true;
     },
   });
